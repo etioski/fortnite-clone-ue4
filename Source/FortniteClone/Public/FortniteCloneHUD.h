@@ -35,6 +35,8 @@ public:
 	void DrawBloodSplash();
 
 	void DrawSettingsMenu();
+	
+	void DrawMap();
 
 private:
 	UTexture2D* CrosshairTexture;
@@ -65,6 +67,9 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "SettingsMenu")
 	TSubclassOf<UUserWidget> SettingsMenuWidgetClass;
+	
+	UPROPERTY(EditAnywhere, Category = "MapWidget")
+	TSubclassOf<UUserWidget> MapWidgetClass;
 
 	UPROPERTY(EditAnywhere, Category = "BuildingHotkeys")
 	TSubclassOf<UUserWidget> BuildingHotkeysWidgetClass;
@@ -74,6 +79,9 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Widget")
 	UUserWidget* SettingsMenuWidget;
+	
+	UPROPERTY(EditAnywhere, Category = "Widget")
+	UUserWidget* MapWidget;
 
 	UPROPERTY(EditAnywhere, Category = "Animations")
 	UWidgetAnimation* HitMarkerAnimation;
