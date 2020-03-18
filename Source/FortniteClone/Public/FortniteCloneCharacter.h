@@ -315,6 +315,9 @@ protected:
 
 	UFUNCTION()
 	void OpenSettingsMenu();
+	
+	UFUNCTION()
+	void ToggleMap();
 
 
 	/*UFUNCTION(Server, WithValidation)
