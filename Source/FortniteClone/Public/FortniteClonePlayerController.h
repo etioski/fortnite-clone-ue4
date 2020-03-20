@@ -6,6 +6,8 @@
 #include "GameFramework/PlayerController.h"
 #include "FortniteClonePlayerController.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogFortniteClonePlayerController, Log, All);
+
 class AFortniteCloneSpectator;
 class AStormActor;
 class AGameMode;
