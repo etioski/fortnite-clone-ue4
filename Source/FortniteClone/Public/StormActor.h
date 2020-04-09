@@ -6,6 +6,87 @@
 #include "GameFramework/Actor.h"
 #include "StormActor.generated.h"
 
+USTRUCT()
+struct FStormScaleProgression
+{
+	GENERATED_BODY()
+
+public:
+	float ScaleThreshold;
+	float ScaleModifier;
+
+	FStormScaleProgression() { ScaleThreshold=ScaleModifier=0.f; }
+	FStormScaleProgression(const float threshold,const float modifier) : ScaleThreshold(threshold),ScaleModifier(modifier) { }
+};
+
+USTRUCT()
+struct FStormAdvancement
+{
+	GENERATED_BODY()
+
+private:
+	UPROPERTY()
+	TArray<FStormScaleProgression> Progressions;
+
+public:
+	UPROPERTY()
+	float ScaleDownRate;
+
+	UPROPERTY()
+	float ExtremelyLowScale;
+
+	FStormAdvancement() { ScaleDownRate=0.999485f; ExtremelyLowScale=0.00000009f; }
+	void AutoGenerateThresholds(const float Resolution)
+	{
+		Empty();
+		float ScaleResolution=1.f / Resolution;
+		int32 ResolutionI=Resolution;
+		for(int32 i=0; i < ResolutionI; i++)
+		{
+			float NextThreshold=ScaleResolution * (i+1);
+			float NextModifier=NextThreshold / 100.f;
+			Add(NextThreshold,NextModifier);
+		}
+	}
+	FVector AdvanceStorm(float ScaleX,const float ScaleZ,const float DeltaTime)
+	{
+		for(auto& progression : Progressions)
+		{
+			if(ScaleX <= progression.ScaleThreshold)
+			{
+				ScaleX=FMath::Clamp(ScaleX-(ScaleDownRate * DeltaTime * progression.ScaleModifier),0.f,ScaleX);
+				break;
+			}
+		}
+		return FVector(ScaleX,ScaleX,ScaleZ);
+	}
+	void OutputStormProgression()
+	{
+		FString LogMsg;
+		for(auto& progression : Progressions)
+			LogMsg+=FString::Printf(_T("{%.04f, %.04f}, "),progression.ScaleThreshold,progression.ScaleModifier);
+		GEngine->AddOnScreenDebugMessage(1,10.f,FColor::Yellow,"StormProgression="+LogMsg);
+	}
+	void Add(const float threshold,const float modifier)
+	{
+		for(auto& progression : Progressions)
+			if(FMath::IsNearlyEqual(threshold,progression.ScaleThreshold))
+				return; //Threshold already exists, don't add it again...
+		Progressions.Emplace(FStormScaleProgression(threshold,modifier));
+		Sort();
+	}
+	void Sort()
+	{
+		Progressions.Sort([](const FStormScaleProgression& L,const FStormScaleProgression& R) -> bool {
+			return L.ScaleThreshold < R.ScaleThreshold;
+		});
+	}
+	void Empty()
+	{
+		Progressions.Empty();
+	}
+};
+
 UCLASS()
 class FORTNITECLONE_API AStormActor : public AActor
 {
@@ -24,68 +105,35 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY()
-	FTimerHandle StormSetupTimerHandle;
-
-	UPROPERTY()
-	FTimerHandle StormStateTimerHandle;
-	
-	UPROPERTY()
-	FTimerHandle StormDamageTimerHandle;
-
 	UPROPERTY(Replicated)
 	float Damage;
-
-	UPROPERTY(Replicated)
-	float StormAdvanceStageRate;
-
-	UPROPERTY(Replicated)
-	float StormIncreaseDamageRate;
 
 	UPROPERTY(Replicated)
 	bool IsShrinking;
 
 	UPROPERTY(Replicated)
-	FVector InitialSizeScale;
-	
-	UPROPERTY(Replicated)
-	FVector InitialActorLocation;
-
-	UPROPERTY(Replicated)
 	FVector SizeScale;
 
-	UPROPERTY(Replicated)
-	TArray<FVector> SizeScales;
-
-	UPROPERTY(Replicated)
-	int32 ScaleIndex;
-
-	UPROPERTY(Replicated)
-	int32 ScaleTotalCount;
+	UPROPERTY()
+	FVector InitialSizeScale;
 
 	UPROPERTY()
-	float ScaleDownRate;
+	FVector InitialActorLocation;
 
 	UPROPERTY()
-	float InverseScaleDownRate;
+	FTimerHandle StormStageTimerHandle;
 
 	UPROPERTY()
-	float ScaleHighThreshold;
+	FTimerHandle StormDamageTimerHandle;
 
 	UPROPERTY()
-	float ScaleMidThreshold;
+	float StormAdvanceStageRate;
 
 	UPROPERTY()
-	float ScaleLowThreshold;
+	float StormIncreaseDamageRate;
 
 	UPROPERTY()
-	float ScaleHighModifier;
-
-	UPROPERTY()
-	float ScaleMidModifier;
-
-	UPROPERTY()
-	float ScaleLowModifier;
+	FStormAdvancement StormAdvancement;
 
 	UPROPERTY()
 	int Stage;
@@ -96,12 +144,11 @@ public:
 	}
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void AdvanceStage();
+	void ServerAdvanceStage();
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerSetNewDamage();
 
 	UFUNCTION(Server,Reliable,WithValidation)
 	void ServerStartStorm();
-
 };
